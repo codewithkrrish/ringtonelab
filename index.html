@@ -1,0 +1,145 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>RingtoneLab — Cut Audio into Ringtones in Your Browser</title>
+<meta name="description" content="RingtoneLab cuts audio into ringtones entirely in your browser: pick a song, drag a region on the waveform, add fades, preview on loop, and export a WAV ringtone. Nothing is uploaded.">
+<link rel="canonical" href="https://ringtonelab-app.vercel.app">
+<meta property="og:title" content="RingtoneLab — Cut Audio into Ringtones in Your Browser">
+<meta property="og:description" content="Pick a song, drag a region on the waveform, add fades, and export a WAV ringtone. Nothing is uploaded.">
+<meta property="og:type" content="website">
+<meta property="og:url" content="https://ringtonelab-app.vercel.app">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="RingtoneLab — Cut Audio into Ringtones in Your Browser">
+<meta name="twitter:description" content="Pick a song, drag a region on the waveform, add fades, and export a WAV ringtone. Nothing is uploaded.">
+<meta name="theme-color" content="#0B0B0F">
+<link rel="icon" type="image/svg+xml" href="favicon.svg">
+<link rel="stylesheet" href="styles.css">
+</head>
+<body>
+<header class="topbar">
+  <div class="brand"><span class="brand-mark">R</span><span class="brand-name">RingtoneLab</span></div>
+  <p class="tagline">Cut any song into a ringtone — entirely in your browser. No uploads, no accounts, no install.</p>
+</header>
+
+<main class="layout">
+  <section class="panel" aria-label="Your audio">
+    <h2>1. Your audio</h2>
+    <div class="dropzone" id="dropZone" role="button" tabindex="0" aria-label="Choose an audio file">
+      <p class="drop-title">Drop audio here, or click to choose a file</p>
+      <p class="muted">MP3 and WAV work almost everywhere. M4A, OGG and FLAC depend on your browser. You can also paste a copied audio file into the page.</p>
+      <input type="file" id="fileInput" accept="audio/*,.mp3,.wav,.m4a,.ogg,.flac,.aac,.opus" hidden>
+    </div>
+    <div class="row">
+      <button type="button" class="btn secondary" id="demoToneBtn">Try a demo tone</button>
+      <button type="button" class="btn secondary" id="clearBtn" disabled>Clear</button>
+    </div>
+    <p class="selected" id="fileNameText">No audio loaded yet.</p>
+    <p class="muted" id="fileMetaText"></p>
+    <p class="status" id="statusText">Add audio to get started.</p>
+    <p class="muted">No audio handy? The demo tone is a 60-second tone generated in your browser — it exercises the whole flow, waveform to export, without a file.</p>
+    <p class="muted">Keyboard: Space plays or stops the selection, L toggles loop, R applies the 30-second ringtone preset. Shortcuts do nothing while you are typing in a field.</p>
+  </section>
+
+  <section class="panel wide" aria-label="Waveform and selection">
+    <h2>2. Waveform and selection</h2>
+    <p class="muted">Drag on the waveform to select a region. Drag the red handles for fine control, or type exact times below. Click anywhere on the waveform to place the playhead, then use "Play from playhead".</p>
+    <div class="wave-wrap" id="waveWrap">
+      <div class="wave-inner" id="waveInner">
+        <canvas id="waveCanvas" height="160" aria-label="Audio waveform"></canvas>
+        <div class="handle" id="handleStart" title="Selection start"></div>
+        <div class="handle" id="handleEnd" title="Selection end"></div>
+        <div class="playhead" id="playheadEl"></div>
+      </div>
+    </div>
+    <div class="row">
+      <label class="field inline">Zoom
+        <input type="range" id="zoomRange" min="20" max="400" step="5" value="100" disabled>
+      </label>
+      <span class="muted" id="zoomValue">Fit on load</span>
+      <button type="button" class="btn secondary small" id="fitBtn" disabled>Fit to width</button>
+    </div>
+    <div class="row">
+      <label class="field inline">Start (seconds)
+        <input type="number" id="startInput" min="0" step="0.1" value="0" disabled>
+      </label>
+      <label class="field inline">End (seconds)
+        <input type="number" id="endInput" min="0" step="0.1" value="0" disabled>
+      </label>
+    </div>
+    <p class="selected" id="selectionText">Selection: 0.0s</p>
+    <div class="row">
+      <button type="button" class="btn" id="preset30Btn" disabled>30s ringtone preset</button>
+      <button type="button" class="btn secondary" id="first30Btn" disabled>First 30s</button>
+      <button type="button" class="btn secondary" id="last30Btn" disabled>Last 30s</button>
+      <button type="button" class="btn secondary" id="fullBtn" disabled>Full file</button>
+    </div>
+    <p class="muted">The 30s ringtone preset keeps your current position and takes 30 seconds from there, shifting back only if the file ends first. Most phones play ringtones up to about 30 seconds.</p>
+  </section>
+
+  <section class="panel" aria-label="Playback, fades and export">
+    <h2>3. Playback and fades</h2>
+    <div class="row">
+      <button type="button" class="btn" id="playSelBtn" disabled>Play selection</button>
+      <button type="button" class="btn secondary" id="playFromBtn" disabled>Play from playhead</button>
+      <button type="button" class="btn secondary" id="stopBtn" disabled>Stop</button>
+    </div>
+    <label class="field"><input type="checkbox" id="loopCheck" checked disabled> Loop preview (selection or playhead range repeats)</label>
+    <label class="field">Volume
+      <input type="range" id="volumeRange" min="0" max="100" step="1" value="80" disabled>
+      <span class="muted" id="volumeText">80%</span>
+    </label>
+    <label class="field">Fade in
+      <input type="range" id="fadeInRange" min="0" max="5" step="0.1" value="0.5" disabled>
+      <span class="muted" id="fadeInText">0.5s</span>
+    </label>
+    <label class="field">Fade out
+      <input type="range" id="fadeOutRange" min="0" max="5" step="0.1" value="1" disabled>
+      <span class="muted" id="fadeOutText">1.0s</span>
+    </label>
+    <p class="muted">Fades are shown as shaded zones on the waveform and applied when you export. The preview plays the raw selection; the exported file carries the fades.</p>
+
+    <h2>4. Export</h2>
+    <p class="muted" id="exportNameText"></p>
+    <p class="muted" id="estimateText">Load audio to see the estimated export size.</p>
+    <div class="row">
+      <button type="button" class="btn" id="exportBtn" disabled>Export WAV ringtone</button>
+    </div>
+    <div id="resultWrap" hidden>
+      <p class="selected" id="resultText"></p>
+      <p><a id="downloadLink" href="#" download>Download</a></p>
+    </div>
+    <p class="muted">Export is WAV (16-bit PCM) because a real MP3 encoder cannot run in the browser without a large encoder library, and this page ships none. WAV works as a ringtone on Android and most players; iPhones need the file converted to .m4r, which this page does not do — see the limitations below.</p>
+  </section>
+</main>
+
+<section class="panel strip" aria-label="How it works">
+  <h2>How it works</h2>
+  <ol class="steps">
+    <li>Add a song — drop it, pick it, paste it, or try the demo tone.</li>
+    <li>Drag a region on the waveform, or use the 30s ringtone preset.</li>
+    <li>Preview it on loop, set fade in and fade out.</li>
+    <li>Export a WAV ringtone named after your song. Set it as your ringtone from your phone's settings.</li>
+  </ol>
+</section>
+
+<section class="panel strip" aria-label="Honest limitations">
+  <h2>Honest limitations</h2>
+  <ul class="steps">
+    <li>Export is WAV only, for the reason above. It is uncompressed, so a 30-second WAV is roughly 5 MB at CD quality — larger than the same clip as MP3.</li>
+    <li>Whether a file decodes at all depends on your browser's codecs, not on this page. MP3 and WAV work almost everywhere; OGG and FLAC fail in Safari, and DRM-protected files never decode.</li>
+    <li>Very long files are held fully in memory while decoding and exporting. A full-length album in one go can be slow or fail on a low-memory device — trim long sources first.</li>
+    <li>iPhones do not accept WAV files as ringtones directly. You need a converter to .m4r and a sync step through a computer; this page cannot do that step for you.</li>
+    <li>Only use audio you own or have the right to cut. This page does not check rights, and it never uploads your files anywhere.</li>
+  </ul>
+</section>
+
+<footer class="footer">
+  <p>Built by krrish · <a href="https://github.com/codewithkrrish/ringtonelab">GitHub</a> · <a href="https://www.instagram.com/krrishx.ai">Instagram</a></p>
+  <p>Your audio is processed locally in your browser and never uploaded.</p>
+</footer>
+
+<script type="module" src="js/main.js"></script>
+</body>
+</html>
